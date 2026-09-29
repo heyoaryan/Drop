@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>How Drop Works — Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Variables ── */
+:root {
+  --bg:           #fafaf9;
+  --sf:           #ffffff;
+  --tx:           #141413;
+  --mut:          #686864;
+  --ln:           #e5e5e0;
+  --ac:           #141413;
+  --ac-tx:        #fafaf9;
+  --card-bg:      #ffffff;
+  --card-border:  #e6e6e1;
+  --primary:      #2563eb;
+  --primary-bg:   rgba(37,99,235,0.08);
+  --primary-glow: rgba(37,99,235,0.16);
+  --success:      #10b981;
+  --success-bg:   rgba(16,185,129,0.08);
+  --success-glow: rgba(16,185,129,0.18);
+  --danger:       #ef4444;
+  --danger-bg:    rgba(239,68,68,0.07);
+  --rad:          20px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme=light]) {
+    --bg:           #0d0d0c;
+    --sf:           #161614;
+    --tx:           #f4f4f0;
+    --mut:          #94948d;
+    --ln:           #242421;
+    --ac:           #f4f4f0;
+    --ac-tx:        #0d0d0c;
+    --card-bg:      #141412;
+    --card-border:  #242420;
+    --primary:      #3b82f6;
+    --primary-bg:   rgba(59,130,246,0.10);
+    --primary-glow: rgba(59,130,246,0.22);
+    --success:      #34d399;
+    --success-bg:   rgba(52,211,153,0.12);
+    --success-glow: rgba(52,211,153,0.22);
+    --danger:       #f87171;
+    --danger-bg:    rgba(248,113,113,0.10);
+  }
+}
+
+/* ── Reset ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  margin: 0; padding: 0;
+}
+html { scroll-behavior: smooth; }
+html, body { min-height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--tx);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 80px;
+}
+code, .mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ── Layout ── */
+.wrap {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 36px);
+}
+
+/* ── Nav ── */
+header.top-nav {
+  position: sticky;
+  top: 0; z-index: 100;
+  background: rgba(250,250,249,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--ln);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme=light]) header.top-nav { background: rgba(13,13,12,0.85); }
+}
+.nav-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 0;
+  gap: 12px;
+}
+.brand {
+  font-size: 19px; font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--tx); text-decoration: none;
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+.brand-badge {
+  font-size: 10px; padding: 2px 8px; border-radius: 6px;
+  background: var(--primary-glow);
+  color: var(--primary);
+  font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+}
+.nav-actions { display: flex; align-items: center; gap: 8px; }
+.nav-link {
+  font-size: 13px; color: var(--mut);
+  text-decoration: none; font-weight: 600;
+  padding: 6px 10px; border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
+}
+.nav-link:hover { color: var(--tx); background: rgba(128,128,128,0.07); }
+.back-btn {
+  background: var(--ac); color: var(--ac-tx);
+  border: none; padding: 7px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  text-decoration: none;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: opacity 0.15s, transform 0.15s;
+  white-space: nowrap;
+}
+.back-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+@media (max-width: 480px) { .nav-link { display: none; } }
+
+/* ══════════════════════════════════════
+   HERO
+══════════════════════════════════════ */
+.hero {
+  padding: clamp(40px, 7vw, 80px) 0 clamp(28px, 4vw, 52px);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: clamp(28px, 5vw, 56px);
+  align-items: center;
+}
+@media (max-width: 680px) {
+  .hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+    justify-items: center;
+  }
+  .hero .pill-grid { margin: 0 auto; }
+  .hero p { margin: 0 auto clamp(22px, 3vw, 32px); }
+}
+.hero-text { min-width: 0; }
+
+/* Lightning orb — mirrors shield-wrap from privacy.html */
+.lightning-wrap {
+  position: relative;
+  width: clamp(120px, 16vw, 160px);
+  height: clamp(120px, 16vw, 160px);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lightning-ring-1 {
+  position: absolute;
+  inset: -6px; border-radius: 50%;
+  border: 1.5px dashed rgba(37,99,235,0.4);
+  animation: spinRing 18s linear infinite;
+}
+.lightning-ring-2 {
+  position: absolute;
+  inset: -18px; border-radius: 50%;
+  border: 1px dashed rgba(37,99,235,0.18);
+  animation: spinRing 28s linear infinite reverse;
+}
+.lightning-glow {
+  position: absolute;
+  inset: 4px; border-radius: 50%;
+  background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+@keyframes spinRing {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes pulseGlow {
+  0%,100% { opacity: 0.5; transform: scale(0.9); }
+  50%      { opacity: 1;   transform: scale(1.1); }
+}
+.lightning-core {
+  position: relative; z-index: 2;
+  width: clamp(80px, 11vw, 108px);
+  height: clamp(80px, 11vw, 108px);
+  border-radius: clamp(20px, 3vw, 28px);
+  background: linear-gradient(135deg, rgba(37,99,235,0.16), rgba(16,185,129,0.12));
+  border: 1.5px solid rgba(37,99,235,0.4);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--primary);
+  box-shadow: 0 10px 32px var(--primary-glow);
+  animation: floatCore 4s ease-in-out infinite;
+}
+@keyframes floatCore {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+.hero h1 {
+  font-size: clamp(26px, 4vw, 46px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin-bottom: 14px;
+}
+.hero p {
+  font-size: clamp(14px, 1.8vw, 17px);
+  color: var(--mut);
+  max-width: 520px;
+  margin: 0 0 clamp(22px, 3vw, 32px);
+  line-height: 1.65;
+}
+@media (max-width: 680px) {
+  .hero p { margin: 0 auto clamp(22px, 3vw, 32px); }
+}
+
+/* Hero pills */
+.pill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 9px;
+  max-width: 520px;
+}
+.sec-pill {
+  display: flex; align-items: center; gap: 9px;
+  padding: 11px 15px; border-radius: 12px;
+  background: var(--sf); border: 1px solid var(--ln);
+  font-size: 13px; font-weight: 600; color: var(--tx);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.sec-pill:hover { transform: translateY(-2px); border-color: var(--primary); }
+.sec-pill .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary-glow);
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════
+   HOW IT WORKS INTRO BOX
+══════════════════════════════════════ */
+.intro-box {
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: var(--rad);
+  padding: clamp(22px, 4vw, 36px);
+  margin-top: clamp(28px, 4vw, 44px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.03);
+  position: relative; overflow: hidden;
+}
+.intro-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 4px; height: 100%;
+  background: linear-gradient(to bottom, var(--primary), var(--success));
+  border-radius: 4px 0 0 4px;
+}
+.intro-box h2 {
+  font-size: clamp(18px, 3vw, 22px);
+  font-weight: 700; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.intro-box p {
+  color: var(--mut);
+  font-size: clamp(13.5px, 2vw, 15px);
+  line-height: 1.7; margin-bottom: 14px;
+}
+.intro-box p:last-of-type { margin-bottom: 20px; }
+
+/* tech stack grid */
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.tech-card {
+  padding: 18px 20px;
+  border-radius: 14px;
+  font-size: 13.5px;
+}
+.tech-card.blue { background: var(--primary-bg); border: 1px solid rgba(37,99,235,0.22); }
+.tech-card.green { background: var(--success-bg); border: 1px solid rgba(16,185,129,0.28); }
+.tech-card b {
+  display: block; font-size: 14px;
+  margin-bottom: 12px;
+}
+.tech-card.blue b  { color: var(--primary); }
+.tech-card.green b { color: var(--success); }
+.tech-card ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.tech-card li {
+  display: flex; align-items: flex-start;
+  gap: 8px; line-height: 1.45; color: var(--tx);
+  font-size: 13.5px;
+}
+.li-icon { flex-shrink: 0; margin-top: 1px; }
+
+/* ══════════════════════════════════════
+   DATA FLOW BOX (same as privacy)
+══════════════════════════════════════ */
+.flow-box {
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: var(--rad);
+  padding: clamp(22px, 4vw, 32px);
+  margin-top: clamp(28px, 4vw, 44px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.03);
+}
+.flow-box-title {
+  font-size: clamp(16px, 2.5vw, 18px);
+  font-weight: 700; margin-bottom: 4px;
+}
+.flow-box-sub {
+  font-size: 13px; color: var(--mut); margin-bottom: 24px;
+}
+.flow-diagram {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0;
+}
+@media (max-width: 640px) {
+  .flow-diagram { flex-direction: column; gap: 0; }
+}
+.flow-node {
+  flex: 1;
+  background: var(--card-bg);
+  border: 1px solid var(--ln);
+  border-radius: 14px;
+  padding: 18px 14px;
+  text-align: center;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 5px; min-width: 0;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.flow-node:hover { border-color: var(--primary); transform: translateY(-2px); }
+.flow-node-icon { font-size: 28px; line-height: 1; }
+.flow-node b { display: block; font-size: 13.5px; }
+.flow-node span { font-size: 11.5px; color: var(--mut); line-height: 1.4; }
+.flow-arrow {
+  flex: 0 0 36px;
+  display: flex; align-items: center; justify-content: center;
+}
+@media (max-width: 640px) {
+  .flow-arrow { flex: 0 0 28px; flex-direction: column; }
+}
+.arrow-track {
+  position: relative;
+  width: 100%; height: 2px;
+  background: var(--ln);
+  border-radius: 2px;
+  overflow: visible;
+}
+@media (max-width: 640px) {
+  .arrow-track { width: 2px; height: 100%; }
+}
+.arrow-dot {
+  position: absolute;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 10px var(--primary);
+  top: 50%; transform: translateY(-50%);
+  animation: dotH 2s ease-in-out infinite;
+}
+@media (max-width: 640px) {
+  .arrow-dot {
+    left: 50%; top: auto; transform: translateX(-50%);
+    animation: dotV 2s ease-in-out infinite;
+  }
+}
+@keyframes dotH {
+  0%   { left: 0%;   opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+@keyframes dotV {
+  0%   { top: 0%;   opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* ══════════════════════════════════════
+   SECTION TITLE
+══════════════════════════════════════ */
+.section-title {
+  font-size: clamp(20px, 3.5vw, 26px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  margin: clamp(44px, 6vw, 60px) 0 20px;
+}
+.section-title span { color: var(--primary); }
+
+/* ══════════════════════════════════════
+   5-STEP PIPELINE CARDS (same as pillars)
+══════════════════════════════════════ */
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+/* 5th card — centre it on the last row */
+.steps-grid .step-pillar:last-child {
+  grid-column: 1 / -1;
+  max-width: calc(50% - 8px);
+  justify-self: center;
+  width: 100%;
+}
+@media (max-width: 620px) {
+  .steps-grid {
+    grid-template-columns: 1fr;
+  }
+  .steps-grid .step-pillar:last-child {
+    grid-column: auto;
+    max-width: 100%;
+    justify-self: stretch;
+  }
+}
+.step-pillar {
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  padding: clamp(20px, 3vw, 26px);
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  position: relative; overflow: hidden;
+}
+.step-pillar::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.25s ease;
+}
+.step-pillar:hover::after { transform: scaleX(1); }
+.step-pillar:hover {
+  transform: translateY(-3px);
+  border-color: rgba(37,99,235,0.3);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.05);
+}
+.step-icon-wrap {
+  width: 46px; height: 46px;
+  border-radius: 13px;
+  background: var(--primary-bg);
+  border: 1px solid rgba(37,99,235,0.2);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--primary);
+  margin-bottom: 15px;
+}
+.step-num-badge {
+  display: inline-flex; align-items: center;
+  font-size: 10.5px; font-weight: 800;
+  color: var(--primary);
+  background: var(--primary-bg);
+  border: 1px solid rgba(37,99,235,0.2);
+  padding: 2px 8px; border-radius: 6px;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+.step-pillar h3 { font-size: 15.5px; font-weight: 700; margin-bottom: 8px; }
+.step-pillar p  { font-size: 13.5px; color: var(--mut); line-height: 1.65; margin-bottom: 10px; }
+.code-line {
+  background: var(--bg);
+  border: 1px solid var(--ln);
+  border-radius: 9px;
+  padding: 8px 13px;
+  font-size: 11.5px;
+  color: var(--tx);
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ══════════════════════════════════════
+   COMPARISON TABLE
+══════════════════════════════════════ */
+.matrix-box {
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: var(--rad);
+  padding: clamp(22px, 4vw, 32px);
+  margin-top: clamp(28px, 4vw, 44px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.03);
+}
+.matrix-box h3 {
+  font-size: clamp(16px, 2.5vw, 18px);
+  font-weight: 700; margin-bottom: 4px;
+}
+.matrix-box-sub {
+  font-size: 13px; color: var(--mut); margin-bottom: 22px;
+}
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.matrix-table {
+  width: 100%; min-width: 480px;
+  border-collapse: collapse; font-size: 13.5px;
+}
+.matrix-table th {
+  padding: 10px 16px; text-align: left;
+  font-size: 11px; font-weight: 700;
+  color: var(--mut); text-transform: uppercase;
+  letter-spacing: 0.07em; border-bottom: 2px solid var(--ln);
+}
+.matrix-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--ln);
+  vertical-align: middle;
+}
+.matrix-table tr:last-child td { border-bottom: none; }
+.matrix-table td:first-child { font-weight: 600; }
+.col-drop { background: var(--primary-bg); }
+.check-yes { color: var(--success); font-weight: 700; }
+.check-no  { color: var(--danger);  font-weight: 700; }
+
+/* ══════════════════════════════════════
+   FAQ
+══════════════════════════════════════ */
+.faq-list { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.faq-item {
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: 14px; overflow: hidden;
+  transition: border-color 0.15s;
+}
+.faq-item.open { border-color: rgba(37,99,235,0.35); }
+.faq-q {
+  padding: 16px 20px;
+  font-size: 14.5px; font-weight: 600;
+  cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 14px; user-select: none; -webkit-user-select: none;
+}
+.faq-q svg {
+  flex-shrink: 0; color: var(--mut);
+  transition: transform 0.22s ease;
+}
+.faq-item.open .faq-q svg { transform: rotate(180deg); }
+.faq-a {
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  font-size: 13.5px; color: var(--mut); line-height: 1.7;
+  padding: 0 20px;
+}
+.faq-item.open .faq-a { max-height: 260px; padding: 0 20px 16px; }
+
+/* ══════════════════════════════════════
+   CTA
+══════════════════════════════════════ */
+.bottom-cta {
+  text-align: center;
+  padding: clamp(48px, 7vw, 72px) 0 12px;
+}
+.start-btn {
+  background: var(--ac); color: var(--ac-tx);
+  border: none; padding: 15px 32px; border-radius: 13px;
+  font-size: 15px; font-weight: 700; font-family: inherit;
+  text-decoration: none;
+  display: inline-flex; align-items: center; gap: 9px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.1);
+  transition: transform 0.15s, opacity 0.15s;
+}
+.start-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+.footer-cr {
+  font-size: 12px; color: var(--mut);
+  margin-top: 28px; letter-spacing: 0.05em; text-transform: uppercase;
+}
+
+/* ── Responsive ── */
+@media (max-width: 400px) {
+  .sec-pill { font-size: 12px; padding: 9px 12px; }
+  .step-icon-wrap { width: 40px; height: 40px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<header class="top-nav">
+  <div class="wrap">
+    <div class="nav-inner">
+      <a href="Drop.html" class="brand">
+        Drop
+        <span class="brand-badge">Architecture</span>
+      </a>
+      <div class="nav-actions">
+        <a href="privacy.html" class="nav-link">Privacy &amp; Security</a>
+        <a href="Drop.html" class="back-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Back to Drop
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ══════════════════════════════════════
+       HERO
+  ══════════════════════════════════════ -->
+  <section class="hero">
+
+    <div class="lightning-wrap">
+      <div class="lightning-ring-2"></div>
+      <div class="lightning-ring-1"></div>
+      <div class="lightning-glow"></div>
+      <div class="lightning-core">
+        <svg width="40" height="40" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="hero-text">
+      <h1>How Drop Works Under The Hood</h1>
+      <p>A technical breakdown of Drop's instant, cross-device transfer pipeline — no apps, no accounts, no phone numbers required.</p>
+      <div class="pill-grid">
+        <div class="sec-pill"><span class="dot"></span>WebSocket Realtime</div>
+        <div class="sec-pill"><span class="dot"></span>~38ms Latency</div>
+        <div class="sec-pill"><span class="dot"></span>No Backend Code</div>
+        <div class="sec-pill"><span class="dot"></span>Zero Dependencies</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       INTRO / WHY IT WORKS THIS WAY
+  ══════════════════════════════════════ -->
+  <section class="intro-box">
+    <h2>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="16" x2="12" y2="12"/>
+        <line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      Why This Architecture
+    </h2>
+    <p>
+      Most file sharing tools require installing an app, creating an account, or sharing a phone number. Drop eliminates all of that by running entirely in the browser, talking directly to <b>Supabase</b> — no intermediate server, no backend code to maintain.
+    </p>
+    <p>
+      The entire app is a single HTML file. Supabase handles the database, real-time WebSocket push, and file storage bucket — everything else runs on your device.
+    </p>
+
+    <div class="tech-grid">
+      <div class="tech-card blue">
+        <b>🧱 Frontend Stack</b>
+        <ul>
+          <li><span class="li-icon">→</span> Vanilla HTML, CSS, JavaScript</li>
+          <li><span class="li-icon">→</span> Zero frameworks, zero build tools</li>
+          <li><span class="li-icon">→</span> HTML5 Canvas API for compression</li>
+          <li><span class="li-icon">→</span> Web Share API for native mobile sharing</li>
+        </ul>
+      </div>
+      <div class="tech-card green">
+        <b>⚙️ Backend (Supabase)</b>
+        <ul>
+          <li><span class="li-icon">→</span> PostgreSQL for item storage</li>
+          <li><span class="li-icon">→</span> Realtime WAL-based WebSocket push</li>
+          <li><span class="li-icon">→</span> Storage bucket for files &amp; images</li>
+          <li><span class="li-icon">→</span> Row-Level Security policies</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       DATA FLOW
+  ══════════════════════════════════════ -->
+  <section class="flow-box">
+    <div class="flow-box-title">End-to-End Transfer Path</div>
+    <div class="flow-box-sub">How a file travels from your phone to your laptop</div>
+
+    <div class="flow-diagram">
+      <div class="flow-node">
+        <div class="flow-node-icon">📱</div>
+        <b>Sender Device</b>
+        <span>Compress &amp; upload</span>
+      </div>
+      <div class="flow-arrow">
+        <div class="arrow-track">
+          <div class="arrow-dot"></div>
+        </div>
+      </div>
+      <div class="flow-node">
+        <div class="flow-node-icon">⚡</div>
+        <b>Supabase Realtime</b>
+        <span>WAL → WebSocket push</span>
+      </div>
+      <div class="flow-arrow">
+        <div class="arrow-track">
+          <div class="arrow-dot" style="animation-delay:1s"></div>
+        </div>
+      </div>
+      <div class="flow-node">
+        <div class="flow-node-icon">💻</div>
+        <b>Receiver Device</b>
+        <span>Instant &amp; 1-tap save</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       5-STEP PIPELINE
+  ══════════════════════════════════════ -->
+  <h2 class="section-title">The <span>5-Step</span> Sync Pipeline</h2>
+  <div class="steps-grid">
+
+    <div class="step-pillar">
+      <div class="step-icon-wrap">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div class="step-num-badge">STEP 01</div>
+      <h3>Session Pairing</h3>
+      <p>A random 4-digit code is generated and embedded in the URL hash. The second device opens the link or types the code — instantly in the same room, no account needed.</p>
+      <div class="code-line">supabase.channel('session-4829')</div>
+    </div>
+
+    <div class="step-pillar">
+      <div class="step-icon-wrap">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+      </div>
+      <div class="step-num-badge">STEP 02</div>
+      <h3>Client-Side Compression</h3>
+      <p>Photos are re-encoded in-browser via the Canvas API — capped at 1400px, 75% JPEG quality. Cuts payload by ~80% and strips EXIF (GPS, device ID) as a privacy side-effect.</p>
+      <div class="code-line">canvas.toBlob(b => upload(b), 'image/jpeg', 0.75)</div>
+    </div>
+
+    <div class="step-pillar">
+      <div class="step-icon-wrap">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <div class="step-num-badge">STEP 03</div>
+      <h3>Storage Upload</h3>
+      <p>Files stream directly to the Supabase <code>drop_files</code> bucket under a session-scoped path. A public CDN URL is returned immediately and written to the database.</p>
+      <div class="code-line">storage.from('drop_files').upload(path, file)</div>
+    </div>
+
+    <div class="step-pillar">
+      <div class="step-icon-wrap">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.06 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 17z"/>
+        </svg>
+      </div>
+      <div class="step-num-badge">STEP 04</div>
+      <h3>Realtime Broadcast</h3>
+      <p>Supabase Realtime monitors the PostgreSQL Write-Ahead Log and pushes the INSERT event over an open WebSocket to every device in the session — no polling, sub-second delivery.</p>
+      <div class="code-line">.on('postgres_changes', { event: 'INSERT', ... })</div>
+    </div>
+
+    <div class="step-pillar">
+      <div class="step-icon-wrap">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </div>
+      <div class="step-num-badge">STEP 05</div>
+      <h3>One-Click Receiving</h3>
+      <p>Items appear instantly on the receiver's screen. Single tap to download, copy to clipboard, open in new tab, or trigger the native Web Share sheet on mobile.</p>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════
+       COMPARISON TABLE
+  ══════════════════════════════════════ -->
+  <section class="matrix-box">
+    <h3>Drop vs Traditional Methods</h3>
+    <div class="matrix-box-sub">How Drop stacks up against the tools people already use</div>
+    <div class="table-scroll">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="col-drop">Drop ⚡</th>
+            <th>WhatsApp</th>
+            <th>AirDrop</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>No phone number needed</td>
+            <td class="check-yes col-drop">✓ Pure code</td>
+            <td class="check-no">✗ Required</td>
+            <td class="check-yes">✓ Yes</td>
+          </tr>
+          <tr>
+            <td>Cross-platform (Android / iOS / PC)</td>
+            <td class="check-yes col-drop">✓ Any browser</td>
+            <td class="check-yes">✓ App needed</td>
+            <td class="check-no">✗ Apple only</td>
+          </tr>
+          <tr>
+            <td>No app installation required</td>
+            <td class="check-yes col-drop">✓ Browser tab</td>
+            <td class="check-no">✗ App install</td>
+            <td class="check-no">✗ OS built-in</td>
+          </tr>
+          <tr>
+            <td>Permanent hard delete</td>
+            <td class="check-yes col-drop">✓ 1-click purge</td>
+            <td class="check-no">✗ Server copy</td>
+            <td class="check-yes">✓ Local</td>
+          </tr>
+          <tr>
+            <td>EXIF metadata stripped</td>
+            <td class="check-yes col-drop">✓ On-device</td>
+            <td class="check-no">✗ No</td>
+            <td class="check-no">✗ No</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       FAQ
+  ══════════════════════════════════════ -->
+  <h2 class="section-title">Frequently Asked <span>Questions</span></h2>
+  <div class="faq-list">
+
+    <div class="faq-item open">
+      <div class="faq-q">
+        How fast is the transfer?
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="faq-a">
+        On a normal Wi-Fi or mobile connection, items appear on the receiving device in under a second. The Supabase Realtime WebSocket push averages ~38ms. Upload speed depends on file size and your connection.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">
+        Does Drop work without an internet connection?
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="faq-a">
+        No. Drop relies on Supabase's cloud infrastructure for storage and real-time delivery. Both devices need an active internet connection — though they don't need to be on the same network.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">
+        Is there a file size limit?
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="faq-a">
+        The Supabase storage bucket is configured with a 50 MB per-file limit. Images are compressed client-side first, so a 15 MB photo typically becomes 2–3 MB before upload.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">
+        Can I use Drop between different networks?
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="faq-a">
+        Yes — that's the point. Your phone on mobile data and your laptop on office Wi-Fi work perfectly. All traffic routes through Supabase, so there are no local network or Bluetooth range restrictions.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Bottom CTA ── -->
+  <div class="bottom-cta">
+    <a href="Drop.html" class="start-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+      Open Drop &amp; Try It Out
+    </a>
+    <div class="footer-cr">© 2026 Drop — Built for easy &amp; private work</div>
+  </div>
+
+</main>
+
+<script>
+// FAQ accordion
+document.querySelectorAll('.faq-item').forEach(item => {
+  item.querySelector('.faq-q').addEventListener('click', () => {
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  });
+});
+</script>
+
+</body>
+</html>

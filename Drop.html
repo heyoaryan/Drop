@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Drop — Instant Share</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+:root {
+  --bg: #fafaf9;
+  --sf: #ffffff;
+  --tx: #161616;
+  --mut: #8a8a86;
+  --ln: #e4e4e0;
+  --ac: #161616;
+  --ac-tx: #fafaf9;
+  --danger: #e11d48;
+  --danger-bg: #ffe4e6;
+  --success: #10b981;
+  --accent-card: #f4f4f2;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme=light]) {
+    --bg: #121211;
+    --sf: #1a1a18;
+    --tx: #efeeea;
+    --mut: #77776f;
+    --ln: #2a2a27;
+    --ac: #efeeea;
+    --ac-tx: #121211;
+    --danger: #fb7185;
+    --danger-bg: #3f1d24;
+    --success: #34d399;
+    --accent-card: #20201d;
+  }
+}
+:root[data-theme=dark] {
+  --bg: #121211;
+  --sf: #1a1a18;
+  --tx: #efeeea;
+  --mut: #77776f;
+  --ln: #2a2a27;
+  --ac: #efeeea;
+  --ac-tx: #121211;
+  --danger: #fb7185;
+  --danger-bg: #3f1d24;
+  --success: #34d399;
+  --accent-card: #20201d;
+}
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+html, body {
+  margin: 0;
+  height: 100%;
+}
+body {
+  background: var(--bg);
+  color: var(--tx);
+  font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+button, input, textarea {
+  font: inherit;
+  color: inherit;
+}
+.hide {
+  display: none !important;
+}
+.wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px;
+  position: relative;
+}
+
+/* Footer */
+.foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 0 calc(14px + env(safe-area-inset-bottom, 0px));
+  margin-top: auto;
+  flex-shrink: 0;
+  text-align: center;
+  width: 100%;
+}
+.foot-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12.5px;
+  margin-bottom: 2px;
+}
+.foot-link {
+  color: var(--mut);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.foot-link:hover {
+  color: var(--tx);
+  background: var(--accent-card);
+  transform: translateY(-1px);
+}
+.foot-link svg {
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+.foot-link:hover svg {
+  opacity: 1;
+}
+.dot-sep {
+  color: var(--mut);
+  opacity: 0.4;
+  font-size: 10px;
+}
+#app .foot {
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+  gap: 4px;
+}
+.c1 {
+  font-size: 13px;
+  color: var(--tx);
+  white-space: pre;
+  letter-spacing: .03em;
+}
+.c1 b {
+  font-weight: 500;
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(10px);
+  filter: blur(5px);
+  animation: chr .6s cubic-bezier(.2,.7,.2,1) forwards;
+  animation-delay: calc(var(--i) * 45ms);
+}
+.ln {
+  display: block;
+  height: 1px;
+  width: 0;
+  background: var(--mut);
+  animation: grow .7s ease forwards;
+  animation-delay: var(--d1, 1.1s);
+}
+.c2 {
+  font-size: 11px;
+  color: var(--mut);
+  text-transform: uppercase;
+  letter-spacing: .5em;
+  opacity: 0;
+  animation: tag 1.1s cubic-bezier(.2,.7,.2,1) forwards;
+  animation-delay: var(--d2, 1.4s);
+}
+@keyframes chr {
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes grow {
+  to { width: 32px; }
+}
+@keyframes tag {
+  to { opacity: 1; letter-spacing: .18em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .c1 b, .ln, .c2 { animation-duration: .01s; animation-delay: 0s; }
+}
+
+/* Buttons */
+.solid {
+  background: var(--ac);
+  color: var(--ac-tx);
+  border: 0;
+  border-radius: 9px;
+  height: 44px;
+  padding: 0 20px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  transition: transform .12s ease, opacity .15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.solid:hover {
+  opacity: .93;
+}
+.solid:active {
+  transform: scale(0.98);
+}
+.solid:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+.ghost {
+  background: none;
+  border: 1px solid var(--ln);
+  border-radius: 9px;
+  height: 36px;
+  padding: 0 14px;
+  cursor: pointer;
+  font-size: 13.5px;
+  color: var(--tx);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: border-color .15s ease, background .15s ease;
+}
+.ghost:hover {
+  border-color: var(--tx);
+  background: rgba(128,128,128,0.05);
+}
+.txtb {
+  background: none;
+  border: 0;
+  padding: 6px 4px;
+  color: var(--mut);
+  cursor: pointer;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color .15s ease;
+}
+.txtb:hover {
+  color: var(--tx);
+}
+.txtb.del:hover {
+  color: var(--danger);
+}
+
+/* Home Section */
+#home {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+#home .in {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  width: 100%;
+  padding: 40px 0 20px;
+}
+#home h1 {
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  margin: 0 0 6px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.h1-tag {
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: .01em;
+  color: var(--mut);
+  font-style: italic;
+  line-height: 1;
+  padding-bottom: 4px;
+}
+#home p {
+  color: var(--mut);
+  margin: 0 0 28px;
+  font-size: 16px;
+}
+#home .solid {
+  width: 100%;
+}
+.big {
+  width: 100%;
+  height: 44px;
+  margin-top: 10px;
+  font-size: 15px;
+}
+#home .join {
+  margin-top: 10px;
+}
+#home .join .solid {
+  width: auto;
+}
+
+/* Session Starting Screen */
+#session-starting {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  animation: fadeIn .2s ease;
+}
+#session-starting.hide {
+  display: none !important;
+}
+.starting-icon {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.starting-icon svg {
+  color: var(--tx);
+}
+.starting-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--ln);
+  border-top-color: var(--tx);
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.starting-text {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.starting-text b {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--tx);
+  letter-spacing: -.01em;
+}
+.starting-text span {
+  font-size: 13px;
+  color: var(--mut);
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--mut);
+  font-size: 12px;
+  margin: 20px 0;
+  letter-spacing: .08em;
+}
+.or:before, .or:after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--ln);
+}
+.join {
+  display: flex;
+  gap: 10px;
+}
+.join input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: 1px solid var(--ln);
+  border-radius: 9px;
+  background: var(--sf);
+  padding: 0 14px;
+  font-size: 20px;
+  letter-spacing: .3em;
+  text-align: center;
+  outline: 0;
+  transition: border-color .15s ease;
+}
+.join input:focus {
+  border-color: var(--tx);
+}
+
+/* Supabase Notice banner */
+.config-banner {
+  background: var(--accent-card);
+  border: 1px dashed var(--mut);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+  font-size: 13.5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.config-banner .txt {
+  line-height: 1.4;
+}
+.config-banner b {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+/* App Header */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--ln);
+  gap: 10px;
+}
+header .l {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.lbl {
+  font-size: 11px;
+  color: var(--mut);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.code {
+  font-size: 22px;
+  letter-spacing: .14em;
+  font-weight: 600;
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: var(--accent-card);
+  color: var(--mut);
+  border: 1px solid var(--ln);
+  cursor: default;
+  user-select: none;
+}
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mut);
+  transition: background .2s;
+}
+.dot.live {
+  background: var(--success);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+  animation: pulse 2.5s infinite;
+}
+.dot.warn {
+  background: #f59e0b;
+}
+.dot.err {
+  background: var(--danger);
+}
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+header .r {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Feed */
+#feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 0 16px;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+.none {
+  color: var(--mut);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  height: 100%;
+  min-height: 240px;
+  padding: 0 20px;
+  gap: 14px;
+}
+.none svg {
+  opacity: .55;
+}
+.none b {
+  display: block;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--tx);
+}
+.none span {
+  display: block;
+  font-size: 14px;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.none .fl {
+  animation: bob 2.4s ease-in-out infinite;
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(-3px); }
+  50% { transform: translateY(5px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .none .fl { animation: none; }
+}
+
+/* Feed Item Cards */
+.it {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--ln);
+  animation: itemIn .22s ease-out;
+}
+@keyframes itemIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.it .txt {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 15.5px;
+  line-height: 1.5;
+}
+.it img {
+  max-width: 100%;
+  max-height: 60vh;
+  display: block;
+  border-radius: 8px;
+  border: 1px solid var(--ln);
+  background: var(--sf);
+  cursor: zoom-in;
+  transition: opacity .2s;
+}
+.file-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--accent-card);
+  border: 1px solid var(--ln);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.file-icon {
+  width: 40px;
+  height: 44px;
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--mut);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.file-icon.pdf {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+.file-icon svg {
+  width: 18px;
+  height: 18px;
+  margin-bottom: 2px;
+}
+.file-meta {
+  flex: 1;
+  min-width: 0;
+}
+.file-meta .nm {
+  font-weight: 500;
+  font-size: 14.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-meta .sub {
+  font-size: 12px;
+  color: var(--mut);
+  margin-top: 2px;
+}
+.acts {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  align-items: center;
+}
+.acts a {
+  text-decoration: none;
+}
+.acts .sp {
+  flex: 1;
+}
+
+/* Toast Message */
+#msg {
+  font-size: 12.5px;
+  color: var(--mut);
+  min-height: 20px;
+  padding: 3px 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color .2s;
+}
+
+/* Composer */
+.comp {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: 14px;
+  padding: 6px 8px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.comp:focus-within {
+  border-color: var(--tx);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+}
+.plus {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 0;
+  background: none;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--mut);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color .15s ease, background .15s ease;
+}
+.plus:hover {
+  color: var(--tx);
+  background: var(--accent-card);
+}
+textarea {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  resize: none;
+  max-height: 140px;
+  padding: 9px 0;
+  line-height: 1.4;
+}
+.comp .solid {
+  height: 40px;
+  padding: 0 18px;
+}
+
+/* Menu Dropdown */
+.menu {
+  position: absolute;
+  left: 6px;
+  bottom: 56px;
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: 10px;
+  overflow: hidden;
+  min-width: 170px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  z-index: 20;
+  animation: menuIn .15s ease-out;
+}
+@keyframes menuIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.menu label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  font-size: 14.5px;
+  cursor: pointer;
+  transition: background .12s;
+}
+.menu label + label {
+  border-top: 1px solid var(--ln);
+}
+.menu label:hover {
+  background: var(--accent-card);
+}
+.menu svg {
+  width: 17px;
+  height: 17px;
+  color: var(--mut);
+}
+
+/* Drag & Drop Overlay */
+#dropzone {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .2s;
+}
+#dropzone.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+#dropzone .box {
+  border: 2px dashed rgba(255,255,255,0.7);
+  border-radius: 20px;
+  padding: 40px 60px;
+  text-align: center;
+}
+#dropzone b {
+  display: block;
+  font-size: 22px;
+  margin-top: 12px;
+}
+#dropzone span {
+  font-size: 14px;
+  opacity: .8;
+}
+
+/* Modal Dialog */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn .2s;
+}
+.modal {
+  background: var(--sf);
+  color: var(--tx);
+  border: 1px solid var(--ln);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 40px rgba(0,0,0,.2);
+}
+.modal-head {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--ln);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.modal-body .field {
+  margin-bottom: 16px;
+}
+.modal-body label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.modal-body input {
+  width: 100%;
+  height: 40px;
+  border: 1px solid var(--ln);
+  border-radius: 8px;
+  background: var(--bg);
+  padding: 0 12px;
+  font-size: 13.5px;
+  outline: 0;
+}
+.modal-body input:focus {
+  border-color: var(--tx);
+}
+.modal-body .hint {
+  font-size: 12px;
+  color: var(--mut);
+  margin-top: 5px;
+}
+.modal-foot {
+  padding: 14px 20px;
+  border-top: 1px solid var(--ln);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.sql-box {
+  background: var(--accent-card);
+  border: 1px solid var(--ln);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+@media (min-width: 700px) {
+  .wrap { padding: 0 8px; }
+  #home h1 { font-size: 46px; }
+}
+@media (max-width: 380px) {
+  .code { font-size: 18px; }
+  .ghost { padding: 0 10px; }
+}
+
+/* Home background canvas */
+#home-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 1;
+}
+#home .in,
+#home .foot,
+#app > *,
+#session-starting > * {
+  position: relative;
+  z-index: 1;
+}
+#app {
+  position: relative;
+  z-index: 1;
+}
+
+/* Footer text crossfade toggle (home only) - removed */
+</style>
+</head>
+<body>
+
+<!-- Drag and drop whole-window overlay -->
+<div id="dropzone">
+  <div class="box">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="17 8 12 3 7 8"></polyline>
+      <line x1="12" y1="3" x2="12" y2="15"></line>
+    </svg>
+    <b>Drop files here</b>
+    <span>Instant upload to active session</span>
+  </div>
+</div>
+
+<!-- Home background orbs (behind everything) -->
+<canvas id="home-bg" aria-hidden="true"></canvas>
+
+<!-- Home Screen -->
+<section id="home" class="wrap">
+  <div class="in">
+    <h1>Drop <span class="h1-tag">instant share</span></h1>
+    <p>Instantly share text, photos, and PDFs. Without WhatsApp.</p>
+
+    <div id="cfg-banner" class="config-banner hide">
+      <div class="txt">
+        <b>⚡ Connect Supabase</b>
+        <span>Add your URL & key in config.js or configure here.</span>
+      </div>
+      <button class="ghost" id="open-cfg-btn">Setup</button>
+    </div>
+
+    <button class="solid" id="new">Start new session</button>
+    <button class="ghost big" id="jb">Join with code</button>
+    <div class="join hide" id="jr">
+      <input id="jc" class="mono" inputmode="numeric" maxlength="4" placeholder="0000" aria-label="Session code">
+      <button class="solid" id="go">Go</button>
+    </div>
+  </div>
+  <div class="foot">
+    <div class="foot-links">
+      <a href="working.html" class="foot-link">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Working
+      </a>
+      <span class="dot-sep">•</span>
+      <a href="privacy.html" class="foot-link">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Privacy & Security
+      </a>
+    </div>
+    <span class="c1">© 2026 Drop — All rights reserved.</span>
+  </div>
+</section>
+
+<!-- Session Starting Screen -->
+<div id="session-starting" class="hide">
+  <div class="starting-icon">
+    <div class="starting-ring"></div>
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+  </div>
+  <div class="starting-text">
+    <b>Starting session…</b>
+    <span>Setting up your secure channel</span>
+  </div>
+</div>
+
+<!-- Active Session Screen -->
+<section id="app" class="wrap hide">
+  <header>
+    <div class="l">
+      <span class="lbl">Session</span>
+      <span class="code mono" id="cd"></span>
+      <div class="status-pill" id="st-pill" title="Supabase status">
+        <span class="dot" id="st-dot"></span>
+        <span id="st-txt">Connecting</span>
+      </div>
+    </div>
+    <div class="r">
+      <button class="ghost" id="inv">Invite</button>
+      <button class="ghost" id="lv">Leave</button>
+    </div>
+  </header>
+  <div id="feed"></div>
+  <div id="msg"></div>
+  <div class="comp">
+    <div class="menu hide" id="mn">
+      <label>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        Photo
+        <input id="ph" type="file" accept="image/*" hidden>
+      </label>
+      <label>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        PDF / File
+        <input id="fl" type="file" accept=".pdf,application/pdf,.txt,.doc,.docx,.zip,.png,.jpg,.jpeg,.webp" hidden>
+      </label>
+    </div>
+    <button class="plus" id="pl" aria-label="Attach">+</button>
+    <textarea id="t" rows="1" placeholder="Type or paste a message..."></textarea>
+    <button class="solid" id="send">Send</button>
+  </div>
+  <div class="foot" style="--d2:.2s">
+  </div>
+</section>
+<div id="cfg-modal" class="modal-backdrop hide">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Supabase Settings</h2>
+      <button class="txtb" id="close-cfg-btn" style="font-size:20px;line-height:1">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-top:0">Configure your Supabase Project URL and public anon key below, or set them in your local <code>config.js</code> file.</p>
+      
+      <div class="field">
+        <label for="cfg-url">Supabase Project URL</label>
+        <input id="cfg-url" placeholder="https://xxxxxxxxxxxx.supabase.co" spellcheck="false">
+      </div>
+
+      <div class="field">
+        <label for="cfg-key">Supabase Public Anon Key</label>
+        <input id="cfg-key" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." spellcheck="false">
+        <span class="hint">Supabase Dashboard ➔ Project Settings ➔ API</span>
+      </div>
+
+      <div class="sql-box">
+        <span>Database Schema & Storage Bucket setup</span>
+        <button class="ghost" id="copy-sql-btn" style="height:30px;font-size:12px">Copy SQL</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="ghost" id="test-cfg-btn">Test Connection</button>
+      <button class="solid" id="save-cfg-btn">Save & Reload</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Staggered letters footer animation
+document.querySelectorAll('.c1').forEach(el => {
+  const t = el.textContent;
+  el.textContent = '';
+  el.setAttribute('aria-label', t);
+  [...t].forEach((ch, i) => {
+    const b = document.createElement('b');
+    b.style.setProperty('--i', i);
+    b.textContent = ch;
+    el.appendChild(b);
+  });
+  const f = el.parentNode;
+  const d = t.length * 0.045 + 0.5;
+  f.style.setProperty('--d1', d + 's');
+  f.style.setProperty('--d2', (d + 0.5) + 's');
+});
+
+const $ = id => document.getElementById(id);
+const say = m => $('msg').textContent = m || '';
+
+let sbClient = null;
+let realtimeChannel = null;
+let activeCode = '';
+let busy = false;
+let first = true;
+let currentItems = [];
+
+// Determine Supabase configuration
+function getSupabaseConfig() {
+  let localUrl = '';
+  let localKey = '';
+  try {
+    localUrl = localStorage.getItem('drop_supabase_url') || '';
+    localKey = localStorage.getItem('drop_supabase_key') || '';
+  } catch (e) {}
+
+  const fileUrl = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url) || '';
+  const fileKey = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || '';
+
+  const url = (localUrl && localUrl.trim()) || fileUrl.trim();
+  const anonKey = (localKey && localKey.trim()) || fileKey.trim();
+
+  const isConfigured = url.startsWith('http') && anonKey.length > 20 && !url.includes('YOUR_SUPABASE_URL');
+  return { url, anonKey, isConfigured };
+}
+
+function initSupabaseClient() {
+  const { url, anonKey, isConfigured } = getSupabaseConfig();
+
+  if (!isConfigured) {
+    $('cfg-banner').classList.remove('hide');
+    updateStatus('err', 'Config Needed');
+    return false;
+  }
+
+  $('cfg-banner').classList.add('hide');
+
+  try {
+    const createClientFn = (window.supabase && window.supabase.createClient) || (typeof createClient !== 'undefined' ? createClient : null);
+    if (createClientFn) {
+      sbClient = createClientFn(url, anonKey, {
+        realtime: {
+          params: {
+            eventsPerSecond: 10
+          }
+        }
+      });
+      return true;
+    } else {
+      console.error('Supabase SDK not loaded yet');
+      updateStatus('err', 'SDK Missing');
+    }
+  } catch (err) {
+    console.error('Supabase init error:', err);
+    updateStatus('err', 'Init Error');
+  }
+  return false;
+}
+
+function updateStatus(state, label) {
+  const dot = $('st-dot');
+  const txt = $('st-txt');
+  dot.className = 'dot ' + (state || '');
+  txt.textContent = label || '';
+}
+
+const mkCode = () => String(Math.floor(Math.random() * 9000) + 1000);
+
+// Session Enter & Leave
+async function enter(c) {
+  activeCode = c;
+  location.hash = c;
+  first = true;
+  currentItems = [];
+
+  // Show starting screen, hide home
+  $('home').classList.add('hide');
+  $('session-starting').classList.remove('hide');
+  $('app').classList.add('hide');
+
+  if (!sbClient && !initSupabaseClient()) {
+    $('session-starting').classList.add('hide');
+    openConfigModal();
+    say('Please enter and save your Supabase credentials');
+    return;
+  }
+
+  updateStatus('warn', 'Connecting');
+
+  await loadInitialItems(c);
+  subscribeRealtime(c);
+}
+
+function leave() {
+  $('jb').classList.remove('hide');
+  $('jr').classList.add('hide');
+  $('jc').value = '';
+  
+  if (realtimeChannel && sbClient) {
+    sbClient.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+
+  activeCode = '';
+  currentItems = [];
+  history.replaceState(null, '', location.pathname);
+  $('app').classList.add('hide');
+  $('session-starting').classList.add('hide');
+  $('home').classList.remove('hide');
+  $('feed').textContent = '';
+  say('');
+}
+
+// Fetch Initial Items
+async function loadInitialItems(c) {
+  try {
+    const { data, error } = await sbClient
+      .from('drop_items')
+      .select('*')
+      .eq('session_code', c)
+      .order('created_at', { ascending: true })
+      .limit(80);
+
+    if (error) throw error;
+    currentItems = data || [];
+  } catch (err) {
+    console.error('Fetch error:', err);
+    // App will be revealed when subscribe resolves; show error in msg bar after reveal
+    setTimeout(() => say('Failed to load items (Check schema / RLS policies)'), 100);
+    updateStatus('err', 'Load Error');
+  }
+}
+
+// Subscribe to Supabase Realtime
+function subscribeRealtime(c) {
+  if (realtimeChannel && sbClient) {
+    sbClient.removeChannel(realtimeChannel);
+  }
+
+  realtimeChannel = sbClient
+    .channel(`session-${c}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'drop_items',
+        filter: `session_code=eq.${c}`
+      },
+      (payload) => {
+        if (payload.eventType === 'INSERT') {
+          if (!currentItems.some(i => i.id === payload.new.id)) {
+            currentItems.push(payload.new);
+            draw(currentItems);
+          }
+        } else if (payload.eventType === 'DELETE') {
+          currentItems = currentItems.filter(i => i.id !== payload.old.id);
+          draw(currentItems);
+        } else if (payload.eventType === 'UPDATE') {
+          const idx = currentItems.findIndex(i => i.id === payload.new.id);
+          if (idx !== -1) {
+            currentItems[idx] = payload.new;
+            draw(currentItems);
+          }
+        }
+      }
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        // Now we're live — reveal the app and hide the starting screen
+        $('session-starting').classList.add('hide');
+        $('app').classList.remove('hide');
+        $('cd').textContent = activeCode;
+        $('feed').innerHTML = '';
+        draw(currentItems);
+        updateStatus('live', 'Live');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        // Show app anyway on error so user isn't stuck
+        $('session-starting').classList.add('hide');
+        $('app').classList.remove('hide');
+        $('cd').textContent = activeCode;
+        $('feed').innerHTML = '';
+        draw(currentItems);
+        updateStatus('err', 'Realtime Err');
+      } else {
+        updateStatus('warn', status.toLowerCase());
+      }
+    });
+}
+
+// Action button handlers
+$('new').onclick = () => enter(mkCode());
+$('jb').onclick = () => {
+  $('jb').classList.add('hide');
+  $('jr').classList.remove('hide');
+  $('jc').focus();
+};
+$('go').onclick = () => {
+  const v = $('jc').value.trim();
+  if (v.length === 4) enter(v);
+};
+$('jc').onkeydown = e => {
+  if (e.key === 'Enter') $('go').click();
+};
+$('lv').onclick = leave;
+
+$('inv').onclick = async () => {
+  const u = location.href.split('#')[0] + '#' + activeCode;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Drop — Session ' + activeCode, text: 'Session ' + activeCode, url: u });
+    } catch {}
+  } else {
+    copy(u);
+  }
+};
+
+async function copy(s) {
+  try {
+    await navigator.clipboard.writeText(s);
+  } catch {
+    const a = document.createElement('textarea');
+    a.value = s;
+    document.body.appendChild(a);
+    a.select();
+    try { document.execCommand('copy'); } catch {}
+    a.remove();
+  }
+  say('Copied to clipboard');
+  setTimeout(() => say(''), 1800);
+}
+
+// Attach menu toggle
+$('pl').onclick = e => {
+  e.stopPropagation();
+  $('mn').classList.toggle('hide');
+};
+document.addEventListener('click', () => $('mn').classList.add('hide'));
+
+// Textarea auto-resize and Enter key behavior
+const t = $('t');
+t.oninput = () => {
+  t.style.height = 'auto';
+  t.style.height = Math.min(t.scrollHeight, 140) + 'px';
+};
+t.onkeydown = e => {
+  if (e.key === 'Enter' && !e.shiftKey && matchMedia('(hover:hover)').matches) {
+    e.preventDefault();
+    $('send').click();
+  }
+};
+
+// Client-side image compression
+function compress(file, max = 1400, q = 0.75) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Canvas blob failed')), 'image/jpeg', q);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+// Download helper
+async function download(item) {
+  say('Downloading…');
+  try {
+    const res = await fetch(item.url);
+    if (!res.ok) throw new Error('Fetch failed');
+    const blob = await res.blob();
+    const u = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = u;
+    a.download = item.name || 'drop-file';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 4000);
+    say('Saved');
+  } catch {
+    window.open(item.url, '_blank');
+    say('Opened in new tab. Save from browser');
+  }
+  setTimeout(() => say(''), 2500);
+}
+
+// Send Text Message
+$('send').onclick = async () => {
+  const val = t.value.trim();
+  if (!val || busy || !sbClient || !activeCode) return;
+  busy = true;
+  say('Sending…');
+
+  try {
+    const { data, error } = await sbClient.from('drop_items').insert({
+      session_code: activeCode,
+      kind: 'text',
+      text: val
+    }).select();
+
+    if (error) throw error;
+    t.value = '';
+    t.style.height = 'auto';
+    say('');
+    if (data && data[0] && !currentItems.some(i => i.id === data[0].id)) {
+      currentItems.push(data[0]);
+      draw(currentItems);
+    }
+  } catch (err) {
+    console.error('Send error:', err);
+    say('Send failed: ' + (err.message || 'Check your connection'));
+  }
+  busy = false;
+};
+
+// Upload Handler (Photos & Files/PDFs)
+async function processUpload(file, isImg) {
+  if (!file || busy || !sbClient || !activeCode) return;
+  busy = true;
+  $('mn').classList.add('hide');
+
+  try {
+    let uploadBlob = file;
+    let finalName = file.name;
+
+    if (isImg) {
+      say('Compressing image…');
+      uploadBlob = await compress(file);
+      finalName = 'photo-' + Date.now().toString(36) + '.jpg';
+    }
+
+    if (uploadBlob.size > 50 * 1024 * 1024) {
+      throw new Error('File exceeds 50 MB limit');
+    }
+
+    const cleanName = finalName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storagePath = `sessions/${activeCode}/${Date.now()}_${cleanName}`;
+
+    say(`Uploading ${Math.round(uploadBlob.size / 1024)} KB…`);
+
+    const { error: uploadError } = await sbClient.storage
+      .from('drop_files')
+      .upload(storagePath, uploadBlob, {
+        contentType: uploadBlob.type || (isImg ? 'image/jpeg' : 'application/octet-stream'),
+        upsert: false
+      });
+
+    if (uploadError) {
+      if (uploadError.message && (uploadError.message.includes('not found') || uploadError.message.includes('Bucket'))) {
+        throw new Error('Supabase Storage bucket "drop_files" not found');
+      }
+      throw uploadError;
+    }
+
+    const { data: { publicUrl } } = sbClient.storage
+      .from('drop_files')
+      .getPublicUrl(storagePath);
+
+    const { data: itemData, error: dbError } = await sbClient
+      .from('drop_items')
+      .insert({
+        session_code: activeCode,
+        kind: isImg ? 'image' : 'file',
+        name: finalName,
+        url: publicUrl,
+        storage_path: storagePath,
+        size: uploadBlob.size
+      })
+      .select();
+
+    if (dbError) throw dbError;
+
+    say('Uploaded!');
+    setTimeout(() => say(''), 1500);
+
+    if (itemData && itemData[0] && !currentItems.some(i => i.id === itemData[0].id)) {
+      currentItems.push(itemData[0]);
+      draw(currentItems);
+    }
+  } catch (err) {
+    console.error('Upload error:', err);
+    say('Upload fail: ' + (err.message || 'Check storage bucket permissions'));
+  }
+  busy = false;
+}
+
+$('ph').onchange = e => {
+  if (e.target.files[0]) processUpload(e.target.files[0], true);
+  e.target.value = '';
+};
+
+$('fl').onchange = e => {
+  if (e.target.files[0]) {
+    const f = e.target.files[0];
+    const isImage = f.type.startsWith('image/');
+    processUpload(f, isImage);
+  }
+  e.target.value = '';
+};
+
+// Delete Item
+async function deleteItem(item) {
+  if (!confirm('Permanently delete this item?')) return;
+  say('Deleting…');
+
+  try {
+    // If it has a storage path, delete from storage bucket
+    if (item.storage_path) {
+      await sbClient.storage.from('drop_files').remove([item.storage_path]);
+    }
+
+    const { error } = await sbClient.from('drop_items').delete().eq('id', item.id);
+    if (error) throw error;
+
+    currentItems = currentItems.filter(i => i.id !== item.id);
+    draw(currentItems);
+    say('');
+  } catch (err) {
+    console.error('Delete error:', err);
+    say('Failed to delete: ' + (err.message || ''));
+  }
+}
+
+// Render Items Feed
+function draw(items) {
+  const F = $('feed');
+  const nearBottom = first || (F.scrollHeight - F.scrollTop - F.clientHeight < 140);
+  F.textContent = '';
+
+  if (!items || !items.length) {
+    F.innerHTML = `
+      <div class="none" aria-label="Empty">
+        <svg viewBox="0 0 96 96" width="80" height="80" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <g class="fl">
+            <path d="M48 14v34"/>
+            <path d="M35 36l13 13 13-13"/>
+          </g>
+          <path d="M16 56h20l4 8h16l4-8h20"/>
+          <path d="M16 56l7-24a6 6 0 0 1 5.7-4H33M80 56l-7-24a6 6 0 0 0-5.7-4H63"/>
+          <path d="M16 56v18a6 6 0 0 0 6 6h52a6 6 0 0 0 6-6V56"/>
+        </svg>
+        <p style="margin:0">
+          <b>Session is empty</b>
+          <span>Type a message below, or tap + to<br>share photos and PDFs</span>
+        </p>
+      </div>`;
+    return;
+  }
+
+  items.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'it';
+    el.id = 'item-' + d.id;
+
+    if (d.kind === 'text') {
+      const p = document.createElement('div');
+      p.className = 'txt';
+      p.textContent = d.text;
+      el.appendChild(p);
+    } else if (d.kind === 'image') {
+      const img = document.createElement('img');
+      img.src = d.url;
+      img.alt = d.name || 'Photo';
+      img.loading = 'lazy';
+      img.onclick = () => window.open(d.url, '_blank');
+      el.appendChild(img);
+    } else {
+      // PDF or general document card
+      const isPdf = (d.name && d.name.toLowerCase().endsWith('.pdf')) || (d.url && d.url.toLowerCase().endsWith('.pdf'));
+      const card = document.createElement('div');
+      card.className = 'file-card';
+      card.innerHTML = `
+        <div class="file-icon ${isPdf ? 'pdf' : ''}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          ${isPdf ? 'PDF' : 'DOC'}
+        </div>
+        <div class="file-meta">
+          <div class="nm" title="${d.name || 'File'}">${d.name || 'Document'}</div>
+          <div class="sub">${d.size ? Math.round(d.size / 1024) + ' KB' : 'File'}</div>
+        </div>
+      `;
+      el.appendChild(card);
+    }
+
+    // Actions row
+    const acts = document.createElement('div');
+    acts.className = 'acts';
+
+    const addBtn = (label, fn, isDel = false) => {
+      const b = document.createElement('button');
+      b.className = 'txtb' + (isDel ? ' del' : '');
+      b.textContent = label;
+      b.onclick = fn;
+      acts.appendChild(b);
+    };
+
+    if (d.kind === 'text') {
+      addBtn('Copy', () => copy(d.text));
+      addBtn('Share', () => {
+        if (navigator.share) navigator.share({ text: d.text }).catch(() => {});
+        else copy(d.text);
+      });
+    } else {
+      addBtn('Download', () => download(d));
+      const op = document.createElement('a');
+      op.className = 'txtb';
+      op.textContent = 'Open';
+      op.href = d.url;
+      op.target = '_blank';
+      op.rel = 'noopener noreferrer';
+      acts.appendChild(op);
+
+      addBtn('Copy link', () => copy(d.url));
+      addBtn('Share', () => {
+        if (navigator.share) navigator.share({ title: d.name, url: d.url }).catch(() => {});
+        else copy(d.url);
+      });
+    }
+
+    const spacer = document.createElement('span');
+    spacer.className = 'sp';
+    acts.appendChild(spacer);
+
+    addBtn('Delete', () => deleteItem(d), true);
+
+    el.appendChild(acts);
+    F.appendChild(el);
+  });
+
+  if (nearBottom) {
+    F.scrollTop = F.scrollHeight;
+  }
+  first = false;
+}
+
+// Window Drag and Drop Support
+let dragCounter = 0;
+const dz = $('dropzone');
+
+window.addEventListener('dragenter', e => {
+  e.preventDefault();
+  dragCounter++;
+  if (activeCode) dz.classList.add('active');
+});
+
+window.addEventListener('dragleave', e => {
+  e.preventDefault();
+  dragCounter--;
+  if (dragCounter <= 0) {
+    dragCounter = 0;
+    dz.classList.remove('active');
+  }
+});
+
+window.addEventListener('dragover', e => {
+  e.preventDefault();
+});
+
+window.addEventListener('drop', async e => {
+  e.preventDefault();
+  dragCounter = 0;
+  dz.classList.remove('active');
+
+  if (!activeCode) return;
+  const files = e.dataTransfer.files;
+  if (!files || !files.length) return;
+
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    const isImage = f.type.startsWith('image/');
+    await processUpload(f, isImage);
+  }
+});
+
+// Settings Modal Controls
+function openConfigModal() {
+  const { url, anonKey } = getSupabaseConfig();
+  $('cfg-url').value = url;
+  $('cfg-key').value = anonKey;
+  $('cfg-modal').classList.remove('hide');
+}
+
+function closeConfigModal() {
+  $('cfg-modal').classList.add('hide');
+}
+
+$('open-cfg-btn').onclick = openConfigModal;
+$('close-cfg-btn').onclick = closeConfigModal;
+
+$('save-cfg-btn').onclick = () => {
+  const url = $('cfg-url').value.trim();
+  const key = $('cfg-key').value.trim();
+
+  if (!url || !key) {
+    alert('Both URL and Key are required');
+    return;
+  }
+
+  try {
+    localStorage.setItem('drop_supabase_url', url);
+    localStorage.setItem('drop_supabase_key', key);
+  } catch (e) {}
+  closeConfigModal();
+  location.reload();
+};
+
+$('test-cfg-btn').onclick = async () => {
+  const testUrl = $('cfg-url').value.trim();
+  const testKey = $('cfg-key').value.trim();
+
+  if (!testUrl || !testKey) {
+    alert('Please enter both Supabase URL and Key');
+    return;
+  }
+
+  try {
+    $('test-cfg-btn').textContent = 'Testing…';
+    const testClient = window.supabase.createClient(testUrl, testKey);
+    const { error } = await testClient.from('drop_items').select('id').limit(1);
+
+    if (error && error.code !== 'PGRST116') {
+      alert('Connection failed: ' + error.message + '\n\nTip: Make sure you ran schema.sql in Supabase SQL editor!');
+    } else {
+      alert('Connected successfully to Supabase! 🎉');
+    }
+  } catch (err) {
+    alert('Test failed: ' + (err.message || 'Check URL'));
+  } finally {
+    $('test-cfg-btn').textContent = 'Test Connection';
+  }
+};
+
+$('copy-sql-btn').onclick = async () => {
+  const sqlSchema = `-- Run this in your Supabase SQL Editor:
+create table if not exists public.drop_items (
+  id uuid primary key default gen_random_uuid(),
+  session_code text not null,
+  kind text not null check (kind in ('text', 'image', 'file')),
+  text text,
+  name text,
+  url text,
+  storage_path text,
+  size bigint default 0,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_drop_items_session on public.drop_items(session_code, created_at asc);
+alter table public.drop_items enable row level security;
+
+create policy "Public select" on public.drop_items for select using (true);
+create policy "Public insert" on public.drop_items for insert with check (true);
+create policy "Public delete" on public.drop_items for delete using (true);
+
+alter table public.drop_items replica identity full;
+alter publication supabase_realtime add table public.drop_items;
+
+insert into storage.buckets (id, name, public) values ('drop_files', 'drop_files', true)
+on conflict (id) do update set public = true;
+
+create policy "Public view files" on storage.objects for select using (bucket_id = 'drop_files');
+create policy "Public upload files" on storage.objects for insert with check (bucket_id = 'drop_files');
+create policy "Public delete files" on storage.objects for delete using (bucket_id = 'drop_files');`;
+
+  await copy(sqlSchema);
+  $('copy-sql-btn').textContent = 'Copied!';
+  setTimeout(() => $('copy-sql-btn').textContent = 'Copy SQL', 2000);
+};
+
+// Bootstrap App
+(async () => {
+  initSupabaseClient();
+  const hash = location.hash.replace('#', '');
+  if (/^\d{4}$/.test(hash)) {
+    enter(hash);
+  }
+})();
+
+// ── Home background: drifting orbs ──────────────────────────────────────────
+(function () {
+  const canvas = document.getElementById('home-bg');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  const ORBS = 7;
+  let orbs = [];
+  let W, H, raf;
+
+  function isDark() {
+    const theme = document.documentElement.getAttribute('data-theme');
+    if (theme === 'dark') return true;
+    if (theme === 'light') return false;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function randBetween(a, b) { return a + Math.random() * (b - a); }
+
+  function makeOrb(i) {
+    const angle = (i / ORBS) * Math.PI * 2 + Math.random() * 0.5;
+    const radius = randBetween(Math.min(W, H) * 0.15, Math.min(W, H) * 0.42);
+    return {
+      x: W / 2 + Math.cos(angle) * radius * 0.6,
+      y: H / 2 + Math.sin(angle) * radius * 0.45,
+      r: randBetween(120, 260),
+      vx: randBetween(-0.12, 0.12),
+      vy: randBetween(-0.08, 0.08),
+      phase: Math.random() * Math.PI * 2,
+      speed: randBetween(0.0003, 0.0007),
+    };
+  }
+
+  function initOrbs() {
+    orbs = Array.from({ length: ORBS }, (_, i) => makeOrb(i));
+  }
+
+  function draw(ts) {
+    ctx.clearRect(0, 0, W, H);
+    const dark = isDark();
+
+    orbs.forEach(o => {
+      o.phase += o.speed * 16;
+      o.x += o.vx + Math.sin(o.phase) * 0.18;
+      o.y += o.vy + Math.cos(o.phase * 0.7) * 0.12;
+      // Soft boundary bounce
+      if (o.x < -o.r) o.x = W + o.r;
+      if (o.x > W + o.r) o.x = -o.r;
+      if (o.y < -o.r) o.y = H + o.r;
+      if (o.y > H + o.r) o.y = -o.r;
+
+      const grad = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+      if (dark) {
+        grad.addColorStop(0, 'rgba(120,110,255,0.09)');
+        grad.addColorStop(0.4, 'rgba(80,180,200,0.05)');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+      } else {
+        grad.addColorStop(0, 'rgba(100,90,255,0.07)');
+        grad.addColorStop(0.4, 'rgba(60,180,220,0.04)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+      }
+      ctx.beginPath();
+      ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+    });
+
+    // Always animate
+    raf = requestAnimationFrame(draw);
+  }
+
+  resize();
+  initOrbs();
+  requestAnimationFrame(draw);
+
+  window.addEventListener('resize', () => { resize(); initOrbs(); });
+})();
+</script>
+</body>
+</html>
