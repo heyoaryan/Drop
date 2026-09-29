@@ -75,6 +75,7 @@ code, .mono { font-family: 'JetBrains Mono', monospace; }
   max-width: 860px;
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 36px);
+  overflow-x: hidden;
 }
 
 /* ── Nav ── */
@@ -224,7 +225,7 @@ header.top-nav {
 /* Hero pills */
 .pill-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 42%), 1fr));
   gap: 9px;
   max-width: 520px;
 }
@@ -278,7 +279,7 @@ header.top-nav {
 /* tech stack grid */
 .tech-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   gap: 14px;
 }
 .tech-card {
@@ -500,9 +501,9 @@ header.top-nav {
 .matrix-box-sub {
   font-size: 13px; color: var(--mut); margin-bottom: 22px;
 }
-.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
 .matrix-table {
-  width: 100%; min-width: 480px;
+  width: 100%; min-width: 460px;
   border-collapse: collapse; font-size: 13.5px;
 }
 .matrix-table th {
@@ -575,10 +576,87 @@ header.top-nav {
   margin-top: 28px; letter-spacing: 0.05em; text-transform: uppercase;
 }
 
-/* ── Responsive ── */
+/* ══════════════════════════════════════
+   RESPONSIVE — TABLET (≤ 720px)
+══════════════════════════════════════ */
+@media (max-width: 720px) {
+  .tech-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ══════════════════════════════════════
+   RESPONSIVE — MOBILE (≤ 540px)
+══════════════════════════════════════ */
+@media (max-width: 540px) {
+  /* nav */
+  .brand { font-size: 16px; }
+  .brand-badge { display: none; }
+  .back-btn { padding: 7px 12px; font-size: 12px; }
+
+  /* pill grid — single column on small screens */
+  .pill-grid {
+    grid-template-columns: 1fr 1fr;
+    max-width: 100%;
+  }
+
+  /* flow nodes — stack neatly */
+  .flow-node { padding: 14px 10px; }
+  .flow-node-icon { font-size: 22px; }
+  .flow-node b { font-size: 12.5px; }
+  .flow-node span { font-size: 11px; }
+
+  /* flow arrow vertical */
+  .flow-arrow { flex: 0 0 24px; }
+
+  /* steps grid */
+  .steps-grid { gap: 12px; }
+  .step-pillar { padding: 16px 16px; }
+  .step-pillar h3 { font-size: 14.5px; }
+  .step-pillar p { font-size: 13px; }
+
+  /* code line — allow wrapping & scrolling */
+  .code-line {
+    font-size: 10.5px;
+    padding: 7px 10px;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  /* matrix table */
+  .matrix-table { font-size: 12.5px; }
+  .matrix-table th, .matrix-table td { padding: 10px 10px; }
+
+  /* intro / why box */
+  .intro-box, .flow-box, .matrix-box { padding: 18px 16px; }
+
+  /* section title */
+  .section-title { margin-top: clamp(32px, 5vw, 48px); }
+
+  /* bottom CTA button */
+  .start-btn { font-size: 14px; padding: 13px 24px; }
+}
+
+/* ══════════════════════════════════════
+   RESPONSIVE — SMALL PHONE (≤ 400px)
+══════════════════════════════════════ */
 @media (max-width: 400px) {
-  .sec-pill { font-size: 12px; padding: 9px 12px; }
-  .step-icon-wrap { width: 40px; height: 40px; }
+  .sec-pill { font-size: 12px; padding: 8px 10px; gap: 7px; }
+  .pill-grid { grid-template-columns: 1fr; gap: 7px; }
+  .step-icon-wrap { width: 40px; height: 40px; border-radius: 11px; }
+  .step-num-badge { font-size: 9.5px; padding: 2px 6px; }
+  .nav-link { display: none; }
+  .brand { font-size: 15px; }
+  .hero h1 { font-size: clamp(22px, 6vw, 30px); }
+
+  /* faq */
+  .faq-q { font-size: 13.5px; padding: 14px 14px; }
+  .faq-a { padding: 0 14px; }
+  .faq-item.open .faq-a { padding: 0 14px 14px; }
+
+  /* tech cards */
+  .tech-card { padding: 14px 14px; }
+  .tech-card li { font-size: 12.5px; }
 }
 </style>
 </head>

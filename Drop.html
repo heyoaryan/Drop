@@ -1007,7 +1007,107 @@ textarea {
   border-color: var(--tx);
 }
 
-/* ── PWA Splash / Update Toast ──────────────────────────────────────────── */
+/* ── Page Load Splash ───────────────────────────────────────────────────── */
+#page-splash {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+#page-splash.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.splash-logo-wrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.splash-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--tx);
+  border-right-color: var(--tx);
+  animation: splashSpin 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.splash-ring-outer {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  border-top-color: var(--mut);
+  opacity: 0.35;
+  animation: splashSpin 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite reverse;
+}
+@keyframes splashSpin {
+  to { transform: rotate(360deg); }
+}
+.splash-icon-core {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tx);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  animation: splashPulse 1.6s ease-in-out infinite;
+}
+@keyframes splashPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+.splash-wordmark {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--tx);
+  opacity: 0;
+  animation: splashFadeUp 0.5s ease forwards 0.15s;
+}
+.splash-sub {
+  font-size: 12px;
+  color: var(--mut);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: splashFadeUp 0.5s ease forwards 0.3s;
+  margin-top: -20px;
+}
+@keyframes splashFadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Session Starting (improved) ────────────────────────────────────────── */
+#session-starting {
+  background: var(--bg) !important;
+}
+.starting-icon {
+  width: 80px !important;
+  height: 80px !important;
+}
+.starting-ring {
+  border-width: 2.5px !important;
+  border-color: var(--ln) !important;
+  border-top-color: var(--tx) !important;
+}
+
+/* ── PWA Splash / Update Toast ───────────────────────────────────────────── */
 #sw-update-toast {
   position: fixed;
   top: calc(16px + env(safe-area-inset-top, 0px));
@@ -1043,6 +1143,21 @@ textarea {
 </style>
 </head>
 <body>
+
+<!-- ── Page Load Splash ── -->
+<div id="page-splash" role="status" aria-label="Loading Drop">
+  <div class="splash-logo-wrap">
+    <div class="splash-ring-outer"></div>
+    <div class="splash-ring"></div>
+    <div class="splash-icon-core">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 5v14M5 12l7 7 7-7"/>
+      </svg>
+    </div>
+  </div>
+  <span class="splash-wordmark">Drop</span>
+  <span class="splash-sub">Instant Share</span>
+</div>
 
 <!-- Drag and drop whole-window overlay -->
 <div id="dropzone">
@@ -1184,6 +1299,32 @@ textarea {
 </div>
 
 <script>
+// ── Page Load Splash ────────────────────────────────────────────────────────
+(function () {
+  const splash = document.getElementById('page-splash');
+  if (!splash) return;
+
+  function hideSplash() {
+    splash.classList.add('hidden');
+    // Remove from DOM after transition so it doesn't block interaction
+    setTimeout(() => splash.remove(), 600);
+  }
+
+  // Hide as soon as DOM is ready + short min display time (so it doesn't flash)
+  const minDisplay = 600; // ms — feel of polish without being annoying
+  const startTime = Date.now();
+
+  if (document.readyState === 'complete') {
+    const elapsed = Date.now() - startTime;
+    setTimeout(hideSplash, Math.max(0, minDisplay - elapsed));
+  } else {
+    window.addEventListener('load', () => {
+      const elapsed = Date.now() - startTime;
+      setTimeout(hideSplash, Math.max(0, minDisplay - elapsed));
+    });
+  }
+})();
+
 // Staggered letters footer animation
 document.querySelectorAll('.c1').forEach(el => {
   const t = el.textContent;

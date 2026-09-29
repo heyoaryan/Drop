@@ -73,6 +73,7 @@ code, .mono { font-family: 'JetBrains Mono', monospace; }
   max-width: 860px;
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 36px);
+  overflow-x: hidden;
 }
 
 /* ── Nav ── */
@@ -222,7 +223,7 @@ header.top-nav {
 /* Trust pills */
 .pill-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 42%), 1fr));
   gap: 9px;
   max-width: 520px;
 }
@@ -276,7 +277,7 @@ header.top-nav {
 /* vs grid */
 .vs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   gap: 14px;
 }
 .vs-card {
@@ -415,7 +416,7 @@ header.top-nav {
 
 .pillars-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(clamp(220px, 40%, 300px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(clamp(220px, 40%, 300px), 100%), 1fr));
   gap: 16px;
 }
 .pillar {
@@ -513,10 +514,71 @@ header.top-nav {
   letter-spacing: 0.05em; text-transform: uppercase;
 }
 
-/* ── Responsive ── */
+/* ══════════════════════════════════════
+   RESPONSIVE — TABLET (≤ 720px)
+══════════════════════════════════════ */
+@media (max-width: 720px) {
+  .vs-grid { grid-template-columns: 1fr; }
+}
+
+/* ══════════════════════════════════════
+   RESPONSIVE — MOBILE (≤ 540px)
+══════════════════════════════════════ */
+@media (max-width: 540px) {
+  /* nav */
+  .brand { font-size: 16px; }
+  .brand-badge { display: none; }
+  .back-btn { padding: 7px 12px; font-size: 12px; }
+
+  /* pill grid — two columns */
+  .pill-grid {
+    grid-template-columns: 1fr 1fr;
+    max-width: 100%;
+  }
+
+  /* why / flow boxes */
+  .why-box, .flow-box { padding: 18px 16px; }
+  .why-box h2 { font-size: clamp(16px, 4vw, 20px); }
+
+  /* flow diagram nodes */
+  .flow-node { padding: 14px 10px; }
+  .flow-node-icon { font-size: 22px; }
+  .flow-node b { font-size: 12.5px; }
+  .flow-node span { font-size: 11px; }
+  .flow-arrow { flex: 0 0 24px; }
+
+  /* security pillars */
+  .pillars-grid { gap: 12px; }
+  .pillar { padding: 16px 16px; }
+  .pillar h3 { font-size: 14.5px; }
+  .pillar p { font-size: 13px; }
+
+  /* faq */
+  .faq-q { font-size: 13.5px; padding: 14px 14px; }
+  .faq-a { padding: 0 14px; }
+  .faq-item.open .faq-a { padding: 0 14px 14px; }
+
+  /* section title */
+  .section-title { margin-top: clamp(32px, 5vw, 48px); }
+
+  /* bottom CTA */
+  .start-btn { font-size: 14px; padding: 13px 24px; }
+}
+
+/* ══════════════════════════════════════
+   RESPONSIVE — SMALL PHONE (≤ 400px)
+══════════════════════════════════════ */
 @media (max-width: 400px) {
-  .sec-pill { font-size: 12px; padding: 9px 12px; }
-  .pillar-icon { width: 40px; height: 40px; }
+  .sec-pill { font-size: 12px; padding: 8px 10px; gap: 7px; }
+  .pill-grid { grid-template-columns: 1fr; gap: 7px; }
+  .pillar-icon { width: 40px; height: 40px; border-radius: 11px; }
+  .nav-link { display: none; }
+  .brand { font-size: 15px; }
+  .hero h1 { font-size: clamp(22px, 6vw, 30px); }
+
+  /* vs cards */
+  .vs-card { padding: 14px 14px; }
+  .vs-card li { font-size: 12.5px; }
 }
 </style>
 </head>
