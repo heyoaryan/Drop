@@ -4,6 +4,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Drop — Instant Share</title>
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- Theme & Status Bar -->
+<meta name="theme-color" content="#161616" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Drop">
+
+<!-- SEO / Open Graph -->
+<meta name="description" content="Instantly share text, photos, and PDFs across devices. No login, no WhatsApp.">
+<meta property="og:title" content="Drop — Instant Share">
+<meta property="og:description" content="Instantly share text, photos, and PDFs across devices. No login.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="icons/icon-512.png">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+
+<!-- Apple Touch Icons -->
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 window.SUPABASE_CONFIG = {
@@ -497,6 +524,11 @@ header .r {
   padding: 10px 0 16px;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+#feed::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/WebKit */
 }
 .none {
   color: var(--mut);
@@ -883,7 +915,131 @@ textarea {
   z-index: 1;
 }
 
-/* Footer text crossfade toggle (home only) - removed */
+/* ── PWA Install Banner ──────────────────────────────────────────────────── */
+#install-banner {
+  position: fixed;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%) translateY(120%);
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+  padding: 14px 16px 14px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 280px;
+  max-width: calc(100vw - 32px);
+  z-index: 300;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform;
+}
+#install-banner.visible {
+  transform: translateX(-50%) translateY(0);
+}
+#install-banner .ib-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #161616;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#install-banner .ib-icon img {
+  width: 44px;
+  height: 44px;
+  display: block;
+}
+#install-banner .ib-text {
+  flex: 1;
+  min-width: 0;
+}
+#install-banner .ib-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tx);
+  line-height: 1.3;
+}
+#install-banner .ib-sub {
+  font-size: 12px;
+  color: var(--mut);
+  margin-top: 2px;
+}
+#install-banner .ib-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+#install-banner .ib-install {
+  background: var(--ac);
+  color: var(--ac-tx);
+  border: 0;
+  border-radius: 8px;
+  height: 34px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+#install-banner .ib-install:hover { opacity: 0.88; }
+#install-banner .ib-dismiss {
+  background: none;
+  border: 1px solid var(--ln);
+  border-radius: 8px;
+  height: 34px;
+  width: 34px;
+  font-size: 16px;
+  color: var(--mut);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+}
+#install-banner .ib-dismiss:hover {
+  color: var(--tx);
+  border-color: var(--tx);
+}
+
+/* ── PWA Splash / Update Toast ──────────────────────────────────────────── */
+#sw-update-toast {
+  position: fixed;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%) translateY(-120%);
+  background: var(--tx);
+  color: var(--bg);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 400;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+}
+#sw-update-toast.visible {
+  transform: translateX(-50%) translateY(0);
+}
+#sw-update-toast button {
+  background: var(--bg);
+  color: var(--tx);
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
 </style>
 </head>
 <body>
@@ -1826,6 +1982,113 @@ create policy "Public delete files" on storage.objects for delete using (bucket_
 
   window.addEventListener('resize', () => { resize(); initOrbs(); });
 })();
+
+// ── PWA: Service Worker Registration ────────────────────────────────────────
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+
+  let swRegistration = null;
+
+  navigator.serviceWorker.register('/sw.js').then(reg => {
+    swRegistration = reg;
+
+    // If there's already a waiting SW (user revisited after update)
+    if (reg.waiting) showUpdateToast(reg.waiting);
+
+    // Listen for a new SW installing
+    reg.addEventListener('updatefound', () => {
+      const newSW = reg.installing;
+      newSW.addEventListener('statechange', () => {
+        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+          showUpdateToast(newSW);
+        }
+      });
+    });
+  }).catch(err => console.warn('SW registration failed:', err));
+
+  // Reload once the new SW takes over
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+
+  function showUpdateToast(sw) {
+    const toast = document.getElementById('sw-update-toast');
+    if (!toast) return;
+    toast.classList.add('visible');
+    document.getElementById('sw-reload-btn').onclick = () => {
+      sw.postMessage({ type: 'SKIP_WAITING' });
+    };
+  }
+})();
+
+// ── PWA: Install Prompt ──────────────────────────────────────────────────────
+(function () {
+  let deferredPrompt = null;
+  const banner = document.getElementById('install-banner');
+  const installBtn = document.getElementById('ib-install-btn');
+  const dismissBtn = document.getElementById('ib-dismiss-btn');
+
+  // Don't show if already dismissed in this session or if already installed
+  const dismissed = sessionStorage.getItem('drop-install-dismissed');
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+
+  if (dismissed || isStandalone) return;
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // Show banner after 3 seconds (don't ambush the user immediately)
+    setTimeout(() => {
+      if (deferredPrompt) banner.classList.add('visible');
+    }, 3000);
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    banner.classList.remove('visible');
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    if (outcome === 'accepted') {
+      console.log('Drop installed as PWA');
+    }
+  });
+
+  dismissBtn.addEventListener('click', () => {
+    banner.classList.remove('visible');
+    deferredPrompt = null;
+    sessionStorage.setItem('drop-install-dismissed', '1');
+  });
+
+  // Hide banner if installed
+  window.addEventListener('appinstalled', () => {
+    banner.classList.remove('visible');
+    deferredPrompt = null;
+  });
+})();
 </script>
+
+<!-- PWA Install Banner -->
+<div id="install-banner" role="complementary" aria-label="Install Drop app">
+  <div class="ib-icon">
+    <img src="icons/icon-192.png" alt="Drop icon" width="44" height="44">
+  </div>
+  <div class="ib-text">
+    <div class="ib-title">Add Drop to Home Screen</div>
+    <div class="ib-sub">Works offline · No browser UI</div>
+  </div>
+  <div class="ib-actions">
+    <button class="ib-install" id="ib-install-btn">Install</button>
+    <button class="ib-dismiss" id="ib-dismiss-btn" aria-label="Dismiss">✕</button>
+  </div>
+</div>
+
+<!-- SW Update Toast -->
+<div id="sw-update-toast" role="status" aria-live="polite">
+  ✦ New version available
+  <button id="sw-reload-btn">Reload</button>
+</div>
+
 </body>
 </html>
