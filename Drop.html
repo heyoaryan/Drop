@@ -1052,6 +1052,20 @@ let currentItems = [];
 
 // Determine Supabase configuration
 function getSupabaseConfig() {
+  // Always prefer config.js values — localStorage is only used as a fallback
+  // when config.js is not set (e.g. open-source / self-hosted installs)
+  const fileUrl = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url) || '';
+  const fileKey = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || '';
+
+  const fileConfigured = fileUrl.trim().startsWith('http') &&
+    fileKey.trim().length > 20 &&
+    !fileUrl.includes('YOUR_SUPABASE_URL');
+
+  if (fileConfigured) {
+    return { url: fileUrl.trim(), anonKey: fileKey.trim(), isConfigured: true };
+  }
+
+  // Fall back to localStorage only when config.js has no valid values
   let localUrl = '';
   let localKey = '';
   try {
@@ -1059,12 +1073,8 @@ function getSupabaseConfig() {
     localKey = localStorage.getItem('drop_supabase_key') || '';
   } catch (e) {}
 
-  const fileUrl = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url) || '';
-  const fileKey = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || '';
-
-  const url = (localUrl && localUrl.trim()) || fileUrl.trim();
-  const anonKey = (localKey && localKey.trim()) || fileKey.trim();
-
+  const url = localUrl.trim();
+  const anonKey = localKey.trim();
   const isConfigured = url.startsWith('http') && anonKey.length > 20 && !url.includes('YOUR_SUPABASE_URL');
   return { url, anonKey, isConfigured };
 }
